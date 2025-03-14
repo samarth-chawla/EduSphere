@@ -1,9 +1,11 @@
 import React from "react";
-import { IoIosSearch } from "react-icons/io";
+import { IoIosSearch,IoIosNotifications } from "react-icons/io";
 import { TiMessages } from "react-icons/ti";
-import { IoIosNotifications } from "react-icons/io";
+import { useSelector } from "react-redux";
 
 const Navbar = () => {
+  const user = useSelector((state)=>state.userInfo.user)
+  console.log(user)
   return (
     <>
       <div className="w-full h-16 bg-gray-900 flex p-10 text-white justify-between items-center">
@@ -16,7 +18,7 @@ const Navbar = () => {
           <TiMessages />
           <IoIosNotifications />
           <div className="flex items-center gap-0">
-            <h2 className="text-sm">Username</h2>
+            <h2 className="text-sm">{user.username}</h2>
             <img src="https://static.vecteezy.com/system/resources/previews/019/879/186/non_2x/user-icon-on-transparent-background-free-png.png" className="w-12 bg-gray-900"></img>
           </div>
         </div>

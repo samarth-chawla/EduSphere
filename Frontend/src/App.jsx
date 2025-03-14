@@ -17,13 +17,13 @@ function App() {
       <main>
         <Routes>
           <Route element={<AuthLayout />}>
-            <Route path='/login' element={<SignIn />} />
+            <Route index element={<SignIn />} />
             <Route path='/SignUp' element={<SignUp />} />
           </Route>
           <Route>
-            <Route element={<HomeLayout />}>
-              <Route index element={<Profile />} />
-              <Route path='/create' element={<Create />} />
+            <Route path='/home' element={<HomeLayout />}>
+              <Route path='/home/profile' element={<Profile />} />
+              <Route path='/home/create' element={<Create />} />
             </Route>
           </Route>
         </Routes>
