@@ -1,8 +1,8 @@
-import { useState,useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FaImages } from "react-icons/fa";
 import { MdEmojiEmotions } from "react-icons/md";
 import { SlOptions } from "react-icons/sl";
-import { AiOutlineDislike,AiOutlineLike } from "react-icons/ai";
+import { AiOutlineDislike, AiOutlineLike } from "react-icons/ai";
 import { IoIosSend } from "react-icons/io";
 import { GoCommentDiscussion } from "react-icons/go";
 import { useSelector, useDispatch } from "react-redux";
@@ -10,15 +10,31 @@ import EmojiPicker from 'emoji-picker-react';
 import { share } from "../../redux/slice";
 
 function Feed() {
-  const [text, setText] = useState("");
-  const [emojipicker, setemojipicker] = useState("")
-  const dispatch = useDispatch();
   const emojiref = useRef()
-  const handleShare = (text)=>{
+  const [text, setText] = useState("");
+  const [showPicker, setShowPicker] = useState(false);
+  const dispatch = useDispatch();
+  const handleShare = (text) => {
     dispatch(share(text));
-    setText("");  
+    setText("");
     console.log(sharedValue)
   }
+  const onEmojiClick = (emoji) => {
+    console.log(emoji.emoji)
+    setText(prev => prev + emoji.emoji);
+    setShowPicker(false);
+  };
+  useEffect(() => {
+    const handelclickoutside = (event) => {
+      if (emojiref.current && !emojiref.current.contains(event.target)) {
+        setShowPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handelclickoutside);
+    return () => {
+      document.removeEventListener("mousedown", handelclickoutside);
+    }
+  }, [emojiref])
 
   return (
     <div className="flex flex-col gap-2 items-center w-[100%] h-[100%] bg-gray-900 p-10">
@@ -34,7 +50,7 @@ function Feed() {
             name="content"
             id="content"
             value={text}
-            onChange={(e)=>setText(e.target.value)}
+            onChange={(e) => setText(e.target.value)}
             placeholder="Share your thoughts"
             className="h-[40%] w-[90%] text-xl py-5 px-4 rounded-3xl outline-none shadow-[4px_4px_8px_rgba(255,255,255,0.1),-4px_-4px_8px_rgba(0,0,0,0.6)]"
           />
@@ -42,9 +58,16 @@ function Feed() {
         <div className="w-[100%] h-[10%] flex items-center px-10 justify-between ">
           <div className=" flex gap-5 text-2xl">
             <FaImages />
-            <MdEmojiEmotions/>
+            <div className="relative">
+              <MdEmojiEmotions onClick={() => setShowPicker((val) => !val)} />
+              {showPicker && (
+                <div ref={emojiref} className="absolute top-10 left-0 z-20">
+                  <EmojiPicker onEmojiClick={onEmojiClick} />
+                </div>
+              )}
+            </div>
           </div>
-          <button className="px-3 bg-black text-white rounded-lg p-1" onClick={()=>handleShare(text)}>Share</button>
+          <button className="px-3 bg-black text-white rounded-lg p-1" onClick={() => handleShare(text)}>Share</button>
         </div>
       </div>
       <div className="bg-[#565656] flex flex-col w-[100%] rounded-3xl">
@@ -70,7 +93,7 @@ function Feed() {
           </div>
           <div className="flex gap-3 text-xl">
             <GoCommentDiscussion />
-            <IoIosSend className="text-2xl"/>
+            <IoIosSend className="text-2xl" />
           </div>
         </div>
       </div>
