@@ -50,7 +50,7 @@ function Feed() {
   }, [emojiref])
 
   return (
-    <div className="flex flex-col gap-4 items-center w-[100%] h-[100%] bg-gray-900 p-10">
+    <div className="flex flex-col gap-4 items-center w-[100%]  bg-gray-900 p-10 max-h-[100%] overflow-y-scroll scrollbar-hide ">
       {/* Create  Post Div */}
       <div className="bg-[#565656] flex flex-col w-[100%] rounded-3xl">
         {/* Thoughts Div */}

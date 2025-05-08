@@ -3,3 +3,10 @@ input:-webkit-autofill {
     box-shadow: 0 0 0 1000px white inset !important;
     -webkit-text-fill-color: black !important;
   }
+ .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }

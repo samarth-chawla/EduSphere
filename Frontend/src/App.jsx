@@ -8,6 +8,7 @@ import AuthLayout from './pages/auth/AuthLayout'
 import HomeLayout from './pages/root/HomeLayout'
 import { Profile,Create } from './pages/root';
 import './App.css'
+import ExplorePage from './pages/root/ExplorePage';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -24,6 +25,7 @@ function App() {
             <Route path='/home' element={<HomeLayout />}>
               <Route path='/home/profile' element={<Profile />} />
               <Route path='/home/create' element={<Create />} />
+              <Route path='/home/explore' element={<ExplorePage />} />
             </Route>
           </Route>
         </Routes>

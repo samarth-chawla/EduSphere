@@ -25,6 +25,11 @@ const SignIn = () => {
     setLogin(!login)
     dispatch(share(!login))
   }
+//   const handleGoogle=(event)=>{
+//     event.preventDefault();
+//     window.location.href = 'https://chitchat2.onrender.com/api/auth/google';
+//    console.log( fetchUser());
+// }
   return (
     <div className='flex flex-col justify-center items-center w-full gap-5'>
       <div>

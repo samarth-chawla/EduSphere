@@ -15,15 +15,49 @@ const SignUp = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   // const userInfo = useSelector((state)=> state.userInfo.user)
-  const handleSignup = () => {
-    const user = { username: username, password: pass }
-    // dispatch(save(user))
-    setUsername("")
-    setPass("")
-    setCPass("")
-    setFullname("")
-    navigate('/home')
-  }
+  const handleSignup = async (e) => {
+    e.preventDefault();
+  
+    if (pass !== cpass) {
+      alert("Passwords do not match");
+      return;
+    }
+  
+    const user = {
+      username,
+      fullname,
+      password: pass,
+      cpassword: cpass,
+    };
+  
+    try {
+      const response = await fetch("/api/createAccount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(user),
+      });
+  
+      const message = await response.text();
+  
+      if (response.ok) {
+        alert("Signup successful");
+        navigate("/home");
+      } else {
+        alert("Signup failed: " + message);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Server error");
+    }
+  
+    // Reset form
+    setUsername("");
+    setFullname("");
+    setPass("");
+    setCPass("");
+  };
+  
   const handleComponent = (e)=>{
       e.preventDefault()
       setLogin(!login)
@@ -43,11 +77,11 @@ const SignUp = () => {
           <AiOutlineUser />
         </div>
         <div className='flex bg-white rounded-lg text-black px-2 justify-between items-center'>
-          <input type="password" name="password" id="password" placeholder='Password' className='bg-white rounded-lg text-black p-1 px-2 outline-none' value={pass} onChange={(e) => setPass(e.target.value)} />
+          <input type="password" name="password" id="password" placeholder='Password' className='bg-white rounded-lg text-black p-1 px-2 outline-none' value={pass} onChange={(e) => setPass(e.target.value)} required/>
           <FaEye />
         </div>
         <div className='flex bg-white rounded-lg text-black px-2 justify-between items-center'>
-          <input type="password" name="cpassword" id="cpassword" placeholder='Confirm Password' className='bg-white rounded-lg text-black p-1 px-2 outline-none' value={cpass} onChange={(e) => setCPass(e.target.value)} />
+          <input type="password" name="cpassword" id="cpassword" placeholder='Confirm Password' className='bg-white rounded-lg text-black p-1 px-2 outline-none' value={cpass} onChange={(e) => setCPass(e.target.value)} required/>
           <FaEyeSlash />
         </div>
         <p className='text-sm'>Already have a account? <a className='text-xs text-blue-400 cursor-pointer' onClick={handleComponent}>Login</a></p>
