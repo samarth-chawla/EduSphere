@@ -3,6 +3,7 @@ import { FaUser, FaEye, FaEyeSlash } from 'react-icons/fa'
 import { AiOutlineUser } from 'react-icons/ai'
 import img from '../../assets/EduSphere_Left_Part.jpeg'
 import { useSelector, useDispatch } from "react-redux";
+import { save } from '../../redux/userSlice'
 import { share } from '../../redux/slice'
 import { useNavigate } from 'react-router-dom'
 
@@ -14,6 +15,7 @@ const SignUp = () => {
   const [login, setLogin] = useState(false)
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  
   // const userInfo = useSelector((state)=> state.userInfo.user)
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -42,6 +44,7 @@ const SignUp = () => {
   
       if (response.ok) {
         alert("Signup successful");
+        dispatch(save(user))
         navigate("/home");
       } else {
         alert("Signup failed: " + message);

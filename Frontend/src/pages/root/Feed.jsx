@@ -8,29 +8,87 @@ import { GoCommentDiscussion } from "react-icons/go";
 import { useDispatch } from "react-redux";
 import EmojiPicker from 'emoji-picker-react';
 import { share } from "../../redux/slice";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 function Feed() {
   const emojiref = useRef()
+  const navigate = useNavigate()
   const [text, setText] = useState("");
   const [image, setImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPicker, setShowPicker] = useState(false);
+  const [posts, setPosts] = useState([]);
   const dispatch = useDispatch();
-  const handleShare = (text) => {
-    dispatch(share(text));
+  const user = useSelector((state) => (state.userInfo.user))
+  const handleShare = async (e) => {
+    e.preventDefault()
+    const imageData = { user: user, image: image, caption: text }
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(imageData),
+      });
+
+      const message = await response.text();
+
+      if (response.ok) {
+        alert("Upload successful");
+        navigate("/home");
+      } else {
+        alert("Upload failed: " + message);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Server error");
+    }
+    // dispatch(share(text));
     setText("");
     setImage(null)
   }
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
-    setSelectedFile(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result);
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    const getPosts = async () => {
+      try {
+        const response = await fetch("/api/getPosts", {
+          method: "GET",
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        setPosts(data);
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Error loading posts. Check the console for details.");
+      }
     }
+    getPosts()
+
+  }, []);
+
+  useEffect(() => {
+    console.log("Updated posts:", posts);
+  }, [posts]);
+
+  const handleImageChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const uploadType = file.type.startsWith("image/") ? "image" : "raw";
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", "EduSphere");
+    data.append("cloud_name", "doqhrlji4");
+    const res = await fetch(`https://api.cloudinary.com/v1_1/doqhrlji4/${uploadType}/upload`, {
+      method: "POST",
+      body: data
+    })
+    const uploadedImageUrl = await res.json()
+    // console.log(uploadedImageUrl)
+    // console.log(user)
+    setImage(uploadedImageUrl.url);
+
   };
   const onEmojiClick = (emoji) => {
     console.log(emoji.emoji)
@@ -101,7 +159,7 @@ function Feed() {
               )}
             </div>
           </div>
-          <button className={`px-3 bg-black text-white rounded-lg p-1 ${image ? "my-2" : "" }`} onClick={() => handleShare(text)}>Share</button>
+          <button className={`px-3 bg-black text-white rounded-lg p-1 ${image ? "my-2" : ""}`} onClick={handleShare}>Share</button>
         </div>
       </div>
       {/* Post Div */}
@@ -122,7 +180,7 @@ function Feed() {
         </div>
         <div className="flex flex-col gap-2 justify-between items-center">
           <p>First  Post</p>
-          <img src="../../src/assets/post.jpg" alt="" className="w-[90%] rounded-2xl"/>
+          <img src="../../src/assets/post.jpg" alt="" className="w-[90%] rounded-2xl" />
         </div>
         <div className="w-[100%] bg-transparent flex gap-5 p-4 items-center justify-between px-6">
           <div className="flex gap-3 text-xl">
@@ -152,7 +210,7 @@ function Feed() {
         </div>
         <div className="flex flex-col gap-2 justify-between items-center">
           <p>First  Post</p>
-          <img src="../../src/assets/post.jpg" alt="" className="w-[90%] rounded-2xl"/>
+          <img src="../../src/assets/post.jpg" alt="" className="w-[90%] rounded-2xl" />
         </div>
         <div className="w-[100%] bg-transparent flex gap-5 p-4 items-center justify-between px-6">
           <div className="flex gap-3 text-xl">
@@ -165,6 +223,49 @@ function Feed() {
           </div>
         </div>
       </div>
+      {posts.length === 0 ? (
+        <p>No posts found.</p>
+      ) : (
+        posts.map((post, index) => {
+          let base64Image;
+          if (post.image && post.image.data) {
+            const byteArray = new Uint8Array(Array.from(post.image.data));
+            const imageUrl = new TextDecoder().decode(byteArray); // This is the actual URL
+            base64Image = imageUrl;
+          }
+
+          return (
+            <div key={index} className="bg-[#565656] flex flex-col w-[100%] rounded-3xl">
+              <div className="w-[100%] bg-transparent flex gap-5 p-4 items-center justify-between px-6">
+                <div className="flex items-center gap-4">
+                  <img
+                    className="w-12 h-12 bg-transparent rounded-full outline-none"
+                    src="https://images.unsplash.com/photo-1575936123452-b67c3203c357?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aW1hZ2V8ZW58MHx8MHx8fDA%3D"
+                    alt=""
+                  />
+                  <div className="flex flex-col ">
+                    <h2 className="text-[1.3vw]">{post.username}</h2>
+                    <h3 className="text-gray-400 font-medium">Active</h3>
+                  </div>
+                </div>
+                <SlOptions />
+              </div>
+              <div className="flex flex-col gap-2 justify-between items-center">
+                <p>{post.caption} </p>
+                {base64Image && (<img src={base64Image} alt="" className="w-[90%] rounded-2xl" />)}
+              </div>
+              <div className="w-[100%] bg-transparent flex gap-5 p-4 items-center justify-between px-6">
+                <div className="flex gap-3 text-xl">
+                  <AiOutlineLike />
+                  <AiOutlineDislike />
+                </div>
+                <div className="flex gap-3 text-xl">
+                  <GoCommentDiscussion />
+                  <IoIosSend className="text-2xl" />
+                </div>
+              </div>
+            </div>)
+        }))}
     </div>
   );
 }

@@ -10,14 +10,39 @@ const SignIn = () => {
   const [username, setUsername] = useState("")
   const [pass, setPass] = useState("")
   const [login, setLogin] = useState(true)
-  const navigate  = useNavigate()
+  const navigate = useNavigate()
   const dispatch = useDispatch()
-  const handleLogin = () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     const user = { username: username, password: pass }
-    dispatch(save(user))
-    navigate('/home')
+    try {
+      const response = await fetch("/api/loginUser", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(user),
+      });
+
+      const message = await response.text();
+      console.log(response)
+      if (response.ok) {
+        alert("Login successful");
+        dispatch(save(user))
+        navigate("/home");
+      } else {
+        alert("Login failed: " + message);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Server error");
+    }
     setUsername("")
     setPass("")
+  }
+  const handleGoogleLogin = async (e) => {
+    e.preventDefault();
+    window.location.href = 'http://localhost:3000/api/auth/google';
+
   }
   const handleComponent = (e) => {
     e.preventDefault()
@@ -25,11 +50,7 @@ const SignIn = () => {
     setLogin(!login)
     dispatch(share(!login))
   }
-//   const handleGoogle=(event)=>{
-//     event.preventDefault();
-//     window.location.href = 'https://chitchat2.onrender.com/api/auth/google';
-//    console.log( fetchUser());
-// }
+
   return (
     <div className='flex flex-col justify-center items-center w-full gap-5'>
       <div>
@@ -53,7 +74,7 @@ const SignIn = () => {
         <div className='h-0.5 w-[30%] bg-gray-400'></div>
       </div>
       <div>
-        <button className='flex justify-between items-center gap-1 bg-white text-black py-1 px-2 rounded-2xl'><FcGoogle />Sign In with Google</button>
+        <button onClick={handleGoogleLogin} className='flex justify-between items-center gap-1 bg-white text-black py-1 px-2 rounded-2xl'><FcGoogle />Sign In with Google</button>
       </div>
     </div>
   )
