@@ -2,25 +2,32 @@ import { useState, useEffect, useRef } from "react";
 import { FaImages } from "react-icons/fa";
 import { MdEmojiEmotions } from "react-icons/md";
 import { SlOptions } from "react-icons/sl";
-import { AiOutlineDislike, AiOutlineLike } from "react-icons/ai";
+import { AiOutlineDislike, AiOutlineLike,AiFillLike, AiFillDislike } from "react-icons/ai";
 import { IoIosSend } from "react-icons/io";
 import { GoCommentDiscussion } from "react-icons/go";
-import { useDispatch } from "react-redux";
+import { useDispatch,useSelector } from "react-redux";
 import EmojiPicker from 'emoji-picker-react';
-import { share } from "../../redux/slice";
-import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 function Feed() {
   const emojiref = useRef()
   const navigate = useNavigate()
+  const dispatch = useDispatch();
+  const user = useSelector((state) => (state.userInfo.user))
+
+  //States used
+  const [userId, setuserId] = useState()
   const [text, setText] = useState("");
   const [image, setImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPicker, setShowPicker] = useState(false);
   const [posts, setPosts] = useState([]);
-  const dispatch = useDispatch();
-  const user = useSelector((state) => (state.userInfo.user))
+  const [postIds, setpostIds] = useState([]);
+  const [likedPosts, setLikedPosts] = useState({})
+  const [like, setLike] = useState(false);
+  const [dislike, setDislike] = useState(false);
+
+  //Functions and Use Effect
   const handleShare = async (e) => {
     e.preventDefault()
     const imageData = { user: user, image: image, caption: text }
@@ -48,6 +55,7 @@ function Feed() {
     setText("");
     setImage(null)
   }
+
   useEffect(() => {
     const getPosts = async () => {
       try {
@@ -59,6 +67,8 @@ function Feed() {
         }
         const data = await response.json();
         setPosts(data);
+        const ids = data.map(post => post.post_id)
+        setpostIds(ids)
       } catch (error) {
         console.error("Error:", error);
         alert("Error loading posts. Check the console for details.");
@@ -66,10 +76,22 @@ function Feed() {
     }
     getPosts()
 
+    const getUserId = async () => {
+      const response = await fetch("/api/getUserId", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(user)
+      })
+      const data = await response.json()
+      const id = data.userId
+      setuserId(id)
+    }
+    getUserId();
   }, []);
 
   useEffect(() => {
-    console.log("Updated posts:", posts);
+    console.log("Updated posts:", posts, likedPosts);
   }, [posts]);
 
   const handleImageChange = async (event) => {
@@ -85,16 +107,41 @@ function Feed() {
       body: data
     })
     const uploadedImageUrl = await res.json()
-    // console.log(uploadedImageUrl)
-    // console.log(user)
     setImage(uploadedImageUrl.url);
-
   };
+
   const onEmojiClick = (emoji) => {
     console.log(emoji.emoji)
     setText(prev => prev + emoji.emoji);
     setShowPicker(false);
   };
+
+  useEffect(() => {
+    if (!userId || !postIds.length) return;
+
+    const fetchLikes = async () => {
+      const results = await Promise.all(
+        postIds.map(postId =>
+          fetch(`/api/posts/${postId}/likes/${userId}`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, postId }),
+          })
+            .then(res => res.json())
+            .then(data => ({ postId, liked: data.liked }))
+        )
+      );
+
+      const likesMap = {};
+      results.forEach(({ postId, liked }) => {
+        likesMap[postId] = liked;
+      });
+      setLikedPosts(likesMap);
+    };
+
+    fetchLikes();
+  }, [userId, postIds]);
+
   useEffect(() => {
     const handelclickoutside = (event) => {
       if (emojiref.current && !emojiref.current.contains(event.target)) {
@@ -106,6 +153,38 @@ function Feed() {
       document.removeEventListener("mousedown", handelclickoutside);
     }
   }, [emojiref])
+
+  const toggleLike = async (postId) => {
+    console.log(postId)
+    const alreadyLiked = likedPosts?.[postId];
+    if (alreadyLiked) {
+      // Unlike
+      fetch(`/api/posts/${postId}/likes/${userId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, postId }),
+      })
+      setLikedPosts(prev => ({
+        ...prev,
+        [postId]: false,
+      }));
+    } else {
+      // Like
+      fetch(`/api/posts/${postId}/likes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, postId }),
+      })
+      setLikedPosts(prev => ({
+        ...prev,
+        [postId]: true,
+      }));
+    }
+  }
+  const toggleDislike = () => {
+    setDislike((prev) => (!prev))
+  }
+
 
   return (
     <div className="flex flex-col gap-4 items-center w-[100%]  bg-gray-900 p-10 max-h-[100%] overflow-y-scroll scrollbar-hide ">
@@ -141,10 +220,6 @@ function Feed() {
                   />
                 ) : (
                   <FaImages />
-                  // <div className="w-32 h-32 flex items-center justify-center border rounded-full ml-15 md:ml-17 md:w-42 md:h-42 bg-[#253D4C] text-white border-[#5BC6DF] relative">
-                  //   <h2 className="absolute top-[50] font-bold "> Upload Image</h2>
-                  //   <h1 className="text-8xl font-bold text-[#5BC6DF]">{userinfo.email.charAt(0).toUpperCase()}</h1>
-                  // </div>
                 )}
                 <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" name="image" id="image" />
               </label>
@@ -163,7 +238,7 @@ function Feed() {
         </div>
       </div>
       {/* Post Div */}
-      <div className="bg-[#565656] flex flex-col w-[100%] rounded-3xl">
+      {/* <div className="bg-[#565656] flex flex-col w-[100%] rounded-3xl">
         <div className="w-[100%] bg-transparent flex gap-5 p-4 items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <img
@@ -184,47 +259,17 @@ function Feed() {
         </div>
         <div className="w-[100%] bg-transparent flex gap-5 p-4 items-center justify-between px-6">
           <div className="flex gap-3 text-xl">
-            <AiOutlineLike />
-            <AiOutlineDislike />
+            <button aria-pressed={like} onClick={() => { toggleLike() }}> {like ? <AiFillLike /> : <AiOutlineLike />} </button>
+            <button aria-pressed={dislike} onClick={toggleDislike}> {dislike ? <AiFillDislike /> : <AiOutlineDislike />} </button>
           </div>
           <div className="flex gap-3 text-xl">
             <GoCommentDiscussion />
             <IoIosSend className="text-2xl" />
           </div>
         </div>
-      </div>
-      <div className="bg-[#565656] flex flex-col w-[100%] rounded-3xl">
-        <div className="w-[100%] bg-transparent flex gap-5 p-4 items-center justify-between px-6">
-          <div className="flex items-center gap-4">
-            <img
-              className="w-12 h-12 bg-transparent rounded-full outline-none"
-              src="https://images.unsplash.com/photo-1575936123452-b67c3203c357?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aW1hZ2V8ZW58MHx8MHx8fDA%3D"
-              alt=""
-            />
-            <div className="flex flex-col ">
-              <h2 className="text-[1.3vw]">Devang kishore</h2>
-              <h3 className="text-gray-400 font-medium">Active</h3>
-            </div>
-          </div>
-          <SlOptions />
-        </div>
-        <div className="flex flex-col gap-2 justify-between items-center">
-          <p>First  Post</p>
-          <img src="../../src/assets/post.jpg" alt="" className="w-[90%] rounded-2xl" />
-        </div>
-        <div className="w-[100%] bg-transparent flex gap-5 p-4 items-center justify-between px-6">
-          <div className="flex gap-3 text-xl">
-            <AiOutlineLike />
-            <AiOutlineDislike />
-          </div>
-          <div className="flex gap-3 text-xl">
-            <GoCommentDiscussion />
-            <IoIosSend className="text-2xl" />
-          </div>
-        </div>
-      </div>
+      </div> */}
       {posts.length === 0 ? (
-        <p>No posts found.</p>
+        <p className="text-blue-200 text-3xl text-center">No posts till now.......</p>
       ) : (
         posts.map((post, index) => {
           let base64Image;
@@ -256,8 +301,8 @@ function Feed() {
               </div>
               <div className="w-[100%] bg-transparent flex gap-5 p-4 items-center justify-between px-6">
                 <div className="flex gap-3 text-xl">
-                  <AiOutlineLike />
-                  <AiOutlineDislike />
+                  <button aria-pressed={likedPosts?.[post.post_id]} onClick={() => { toggleLike(post.post_id) }}> {likedPosts?.[post.post_id] ? <AiFillLike /> : <AiOutlineLike />} </button>
+                  <button aria-pressed={dislike} onClick={() => { toggleDislike(post.post_id) }}> {dislike ? <AiFillDislike /> : <AiOutlineDislike />} </button>
                 </div>
                 <div className="flex gap-3 text-xl">
                   <GoCommentDiscussion />

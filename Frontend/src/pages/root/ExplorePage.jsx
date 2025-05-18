@@ -17,7 +17,7 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
+    <div className="container mx-auto px-4 py-6 max-w-7xl overflow-y-scroll scrollbar-hide">
       <div className="flex flex-col space-y-6">
         {/* Search Bar */}
         <div className="relative">

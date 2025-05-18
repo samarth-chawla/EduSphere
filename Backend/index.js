@@ -271,6 +271,126 @@ app.get("/api/getPosts", async (req,res,next) => {
     const result = await db.query("SELECT posts.*, users.username FROM posts JOIN users ON posts.user_id = users.user_id")
     res.send(result.rows)
 
+    // console.log(result.rows)
+  } catch (error) {
+    console.log("Error loading posts",error)
+  }
+})
+
+app.post('/api/getUserId', async (req,res) => {
+  const user = req.body.username
+  try {
+    const result = await db.query(
+    "SELECT user_id FROM users WHERE username = $1",
+    [user])
+    if (result.rows.length === 0) {
+      return res.status(404).send("User not found");
+    }
+    const id = result.rows[0].user_id;
+    res.status(200).json({ userId: id });
+  } catch (error) {
+    console.log("Cannot find the user ", error)
+    res.status(500).send("Internal server error");
+  }
+})
+
+// Check if user has liked a post
+app.post('/api/posts/:postId/likes/:userId', async (req, res) => {
+  const { postId, userId } = req.body;
+  try {
+    const result = await db.query(
+      'SELECT 1 FROM likes WHERE post_id = $1 AND user_id = $2',
+      [postId, userId]
+    );
+    res.json({ liked: result.rowCount > 0 });
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// Like a post
+app.post('/api/posts/:postId/likes', async (req, res) => {
+  const { userId,postId } = req.body;
+
+  try {
+    await db.query(
+      'INSERT INTO likes (user_id, post_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [userId, postId]
+    );
+    res.status(200).json({ message: 'Post liked' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to like post' });
+  }
+});
+
+// Unlike a post
+app.delete('/api/posts/:postId/likes/:userId', async (req, res) => {
+  const { postId, userId } = req.body;
+
+  try {
+    await db.query(
+      'DELETE FROM likes WHERE user_id = $1 AND post_id = $2',
+      [userId, postId]
+    );
+    res.status(200).json({ message: 'Post unliked' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to unlike post' });
+  }
+});
+
+app.post("/api/getSuggestions",async (req,res) =>{
+  const loggeduserId = req.body.loggeduserId;
+  
+  try {
+    const result = await db.query("SELECT * FROM users WHERE user_id != $1 AND user_id NOT IN (SELECT UNNEST(follows) FROM users WHERE user_id = $1)",[loggeduserId]);
+    res.status(200).send(result.rows);
+  } catch (error) {
+    console.log(error)
+  }
+})
+
+app.delete("/api/suggestions/:userId/follow", async (req,res) => {
+  const {userId, loggeduserId} = req.body;
+  try {
+    db.query('UPDATE users SET follows = array_remove(follows, $1) WHERE user_id = $2', [userId,loggeduserId]);
+    res.status(200).json({ message: 'Unfollowed' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to unfollow' });
+  }
+})
+
+app.post("/api/suggestions/:userId/follow", async (req,res) => {
+  const {userId, loggeduserId} = req.body;
+  try {
+    db.query('UPDATE users SET follows = follows || $1 WHERE user_id = $2', [[userId],loggeduserId])
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to follow' });
+  }
+})
+
+app.post('/api/getuserInfo', async (req,res) => {
+  const user = req.body.username
+  try {
+    const result = await db.query(
+    "SELECT * FROM users WHERE username = $1",
+    [user])
+    if (result.rows.length === 0) {
+      return res.status(404).send("User not found");
+    }
+    const userInfo = result.rows[0];
+    // console.log(id)
+    res.status(200).json( userInfo );
+  } catch (error) {
+    console.log("Cannot find the user ", error)
+    res.status(500).send("Internal server error");
+  }
+})
+
+app.get(`/api/getPosts/:userId`, async (req,res,next) => {
+  const {userId} = req.params
+  try {
+    const result = await db.query("SELECT * FROM posts WHERE user_id = $1", [userId])
+    res.send(result.rows)
     console.log(result.rows)
   } catch (error) {
     console.log("Error loading posts",error)
